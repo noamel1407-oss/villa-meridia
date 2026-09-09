@@ -417,6 +417,82 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
   size();
   schedule();
 })();
+
+/* ---- capture pass: inert unless the URL carries shoot=1 --------------------
+   Drives window scroll only, so the page can be screen-recorded. It creates
+   no elements and shows nothing, and without the flag it registers no
+   listeners and touches nothing at all.
+     ?shoot=1           arm it; press R to run, touch to abort
+     ?shoot=1&auto=1    run it on load
+     &dur=<ms>          travel time, default 12000, clamped to 4000-60000
+--------------------------------------------------------------------------- */
+(function () {
+  var q = new URLSearchParams(window.location.search);
+  if (q.get('shoot') !== '1') return;
+
+  var LEAD = 1500;
+  var dur = parseInt(q.get('dur'), 10);
+  if (!isFinite(dur)) dur = 12000;
+  dur = Math.max(4000, Math.min(60000, dur));
+
+  var raf = null, timer = null, running = false;
+
+  function maxScroll() {
+    var d = document.documentElement;
+    return Math.max(0, Math.max(d.scrollHeight, document.body.scrollHeight) - window.innerHeight);
+  }
+
+  // end of the path: one content section past the journey, measured live
+  function endOfPath() {
+    var j = document.getElementById('journey');
+    if (!j) return maxScroll();
+    var el = j.nextElementSibling;
+    while (el && !el.getBoundingClientRect().height) el = el.nextElementSibling;
+    if (!el) el = j;
+    var top = window.pageYOffset || document.documentElement.scrollTop || 0;
+    return Math.max(0, Math.min(el.getBoundingClientRect().bottom + top - window.innerHeight, maxScroll()));
+  }
+
+  // one curve for the whole path. speed is 1 - (2t-1)^4 : zero at both ends,
+  // within 6% of its peak across the middle half. no segments, no stops.
+  function ease(t) {
+    var u = 2 * t - 1;
+    return (t - u * u * u * u * u / 10 - 0.1) / 0.8;
+  }
+
+  function stop() {
+    if (raf) { cancelAnimationFrame(raf); raf = null; }
+    if (timer) { clearTimeout(timer); timer = null; }
+    running = false;
+  }
+
+  function run() {
+    if (running) return;
+    running = true;
+    window.scrollTo(0, 0);
+    timer = setTimeout(function () {
+      timer = null;
+      var from = window.pageYOffset || document.documentElement.scrollTop || 0;
+      var to = endOfPath();
+      var t0 = performance.now();
+      (function step() {
+        var t = (performance.now() - t0) / dur;
+        if (t >= 1) { window.scrollTo(0, to); raf = null; running = false; return; }
+        window.scrollTo(0, Math.round(from + (to - from) * ease(t)));
+        raf = requestAnimationFrame(step);
+      })();
+    }, LEAD);
+  }
+
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  window.addEventListener('keydown', function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+    if (e.key === 'r' || e.key === 'R') run();
+  });
+  window.addEventListener('touchstart', stop, { passive: true });
+  if (q.get('auto') === '1') run();
+})();
 </script>
 </body>
 </html>
