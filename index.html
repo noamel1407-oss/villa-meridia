@@ -318,7 +318,8 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
   function tick() {
     raf = null;
     var p = progress();
-    target = Math.round(p * (COUNT - 1));
+    COUNT = imgs.length || 1;
+    target = p * (COUNT - 1);
     shown += (target - shown) * 0.28;
     if (Math.abs(target - shown) < 0.02) shown = target;
     draw(Math.max(0, Math.min(COUNT - 1, shown)));
@@ -435,7 +436,22 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
   if (!isFinite(dur)) dur = 12000;
   dur = Math.max(4000, Math.min(60000, dur));
 
-  var raf = null, timer = null, running = false;
+  var raf = null, timer = null, running = false, css = null;
+
+  // the pointer and the scrollbar are part of the screen, so take them
+  // out of frame for the duration of the run and put them back after.
+  function chrome(on) {
+    if (on && !css) {
+      css = document.createElement('style');
+      css.textContent =
+        'html.vm-shooting,html.vm-shooting *{cursor:none!important}' +
+        'html.vm-shooting{scrollbar-width:none}' +
+        'html.vm-shooting::-webkit-scrollbar,html.vm-shooting body::-webkit-scrollbar' +
+        '{width:0;height:0;display:none}';
+      document.head.appendChild(css);
+    }
+    document.documentElement.classList.toggle('vm-shooting', !!on);
+  }
 
   function maxScroll() {
     var d = document.documentElement;
@@ -464,11 +480,13 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
     if (raf) { cancelAnimationFrame(raf); raf = null; }
     if (timer) { clearTimeout(timer); timer = null; }
     running = false;
+    chrome(false);
   }
 
   function run() {
     if (running) return;
     running = true;
+    chrome(true);
     window.scrollTo(0, 0);
     timer = setTimeout(function () {
       timer = null;
@@ -477,7 +495,7 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
       var t0 = performance.now();
       (function step() {
         var t = (performance.now() - t0) / dur;
-        if (t >= 1) { window.scrollTo(0, to); raf = null; running = false; return; }
+        if (t >= 1) { window.scrollTo(0, to); raf = null; running = false; chrome(false); return; }
         window.scrollTo(0, Math.round(from + (to - from) * ease(t)));
         raf = requestAnimationFrame(step);
       })();
