@@ -104,7 +104,7 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
   :root{--pad:52px}
   .bar{padding:20px var(--pad)}
   .bar nav a.desk{display:inline}
-  .cap{right:auto;left:var(--pad);width:min(36vw,470px);
+  .cap{left:auto;right:0;width:50vw;padding:0 var(--pad) 0 4vw;
     bottom:auto;top:50%;transform:translateY(-42%);
     color:var(--ink);text-shadow:none;text-align:right}
   .cap.on{transform:translateY(-50%)}
@@ -292,7 +292,7 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
     var wide = window.innerWidth >= 900;
     var s = wide ? ch / ih : Math.max(cw / iw, ch / ih);
     var w = iw * s, h = ih * s;
-    var x = wide ? (cw * 0.06) : (cw - w) / 2;
+    var x = wide ? Math.max(cw * 0.04, (cw * 0.5 - w) / 2) : (cw - w) / 2;
     var y = (ch - h) / 2;
     ctx.fillStyle = '#F2EDE4';
     ctx.fillRect(0, 0, cw, ch);
