@@ -343,17 +343,26 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
 
   var CAP = 108, grab = document.createElement('canvas'), gctx = null, done = false;
 
-  function addFrame(url) {
+  function addFrame() {
     var im = new Image();
     im.decoding = 'async';
     im.onload = function () {
+      if (im.blobUrl) { URL.revokeObjectURL(im.blobUrl); im.blobUrl = null; }
       ready++;
       if (ready === 1) { COUNT = imgs.length; draw(0); }
       loader.textContent = 'LOADING ' + Math.min(99, Math.round(ready / CAP * 100)) + '%';
       schedule();
     };
-    im.src = url;
+    // the slot is taken now, in capture order, so that encodes finishing out
+    // of order cannot shuffle the sequence
     imgs.push(im);
+    window.VM_FRAMES = imgs.length;
+    if (!grab.toBlob) { im.src = grab.toDataURL('image/jpeg', 0.92); return; }
+    grab.toBlob(function (b) {
+      if (!b) return;
+      im.blobUrl = URL.createObjectURL(b);
+      im.src = im.blobUrl;
+    }, 'image/jpeg', 0.92);
   }
 
   function finish() {
@@ -369,7 +378,7 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
   function shoot() {
     if (imgs.length >= CAP) { finish(); return; }
     gctx.drawImage(vid, 0, 0, grab.width, grab.height);
-    addFrame(grab.toDataURL('image/jpeg', 0.92));
+    addFrame();
   }
 
   function begin() {
@@ -385,7 +394,10 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
         if (!done) vid.requestVideoFrameCallback(step);
       };
       vid.requestVideoFrameCallback(step);
-      vid.playbackRate = 4;
+      // at 4x the compositor only ever presents a quarter of the clip's
+      // frames. <=2x presents all of them, so the supply is the clip
+      // itself rather than the playback speed.
+      vid.playbackRate = Math.max(1, Math.min(2, (vid.duration * 30) / CAP));
       var p = vid.play();
       if (p && p.catch) p.catch(seekMode);
       vid.addEventListener('ended', finish);
@@ -446,6 +458,7 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
       css.textContent =
         'html.vm-shooting,html.vm-shooting *{cursor:none!important}' +
         'html.vm-shooting{scrollbar-width:none}' +
+        'html.vm-shooting .vm-info{display:none!important}' +
         'html.vm-shooting::-webkit-scrollbar,html.vm-shooting body::-webkit-scrollbar' +
         '{width:0;height:0;display:none}';
       document.head.appendChild(css);
@@ -509,6 +522,16 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
     if (e.key === 'r' || e.key === 'R') run();
   });
   window.addEventListener('touchstart', stop, { passive: true });
+  if (q.get('info') === '1') {
+    var info = document.createElement('div');
+    info.className = 'vm-info';
+    info.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;' +
+      'align-items:center;justify-content:center;pointer-events:none;' +
+      'background:rgba(20,18,14,.86);color:#F7F3EC;' +
+      'font:700 26vmin/1 ui-monospace,Menlo,Consolas,monospace';
+    document.body.appendChild(info);
+    setInterval(function () { info.textContent = window.VM_FRAMES || 0; }, 250);
+  }
   if (q.get('auto') === '1') run();
 })();
 </script>
