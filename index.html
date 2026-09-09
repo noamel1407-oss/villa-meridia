@@ -104,15 +104,15 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
   :root{--pad:52px}
   .bar{padding:20px var(--pad)}
   .bar nav a.desk{display:inline}
-  .cap{left:auto;right:0;width:46vw;padding:0 var(--pad) 0 5vw;
-    bottom:auto;top:50%;transform:translateY(-42%);
-    color:var(--ink);text-shadow:none;text-align:right}
-  .cap.on{transform:translateY(-50%)}
-  .cap h2{font-size:clamp(38px,3.6vw,62px)}
-  .cap p{font-size:16px;margin-top:18px;padding-top:18px;
-    border-top:1px solid var(--line);display:inline-block}
-  .cap p{color:var(--quiet)}
-  #loader{color:var(--quiet)}
+  .cap{left:auto;right:var(--pad);width:min(46vw,620px);
+    top:auto;bottom:10vh;transform:translateY(14px);
+    color:#F7F3EC;text-align:right;
+    text-shadow:0 2px 40px rgba(24,20,14,.6)}
+  .cap.on{transform:none}
+  .cap h2{font-size:clamp(44px,4.4vw,76px)}
+  .cap p{color:rgba(247,243,236,.9);font-size:17px;margin-top:16px;
+    border-top:0;padding-top:0}
+  #loader{color:#F7F3EC}
   .row{padding:118px var(--pad);display:grid;
     grid-template-columns:minmax(0,1fr) minmax(0,1fr);
     gap:min(8vw,104px);align-items:center}
@@ -292,11 +292,9 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
     current = i;
     var cw = canvas.width, ch = canvas.height;
     var iw = im.naturalWidth, ih = im.naturalHeight;
-    var wide = window.innerWidth >= 900;
-    var s = wide ? ch / ih : Math.max(cw / iw, ch / ih);
+    var s = Math.max(cw / iw, ch / ih);
     var w = iw * s, h = ih * s;
-    var x = wide ? Math.max(cw * 0.05, (cw * 0.52 - w) / 2) : (cw - w) / 2;
-    var y = (ch - h) / 2;
+    var x = (cw - w) / 2, y = (ch - h) / 2;
     ctx.fillStyle = '#F2EDE4';
     ctx.fillRect(0, 0, cw, ch);
     ctx.drawImage(im, x, y, w, h);
