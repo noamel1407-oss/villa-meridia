@@ -352,6 +352,11 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
   document.body.appendChild(vid);
 
   var CAP = 108, grab = document.createElement('canvas'), gctx = null, done = false;
+  // Longest edge each frame is stored at. The canvas already upscales the
+  // 1280x720 source, and holding the whole set well under the browser's
+  // image budget is what keeps all 108 decoded for the length of the tour
+  // instead of being evicted and decoded again mid-scroll.
+  var MAXEDGE = 768;
 
   function addFrame() {
     var im = new Image();
@@ -379,10 +384,17 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
     if (done) return;
     done = true;
     COUNT = imgs.length;
-    loader.style.display = 'none';
     try { vid.pause(); } catch (e) {}
     vid.removeAttribute('src'); vid.load();
     schedule();
+    // Decode the whole set once, here, before anything scrolls. The tour then
+    // never has to decode a frame while it is drawing one.
+    Promise.all(imgs.map(function (im) {
+      return im.decode ? im.decode().catch(function () {}) : Promise.resolve();
+    })).then(function () {
+      loader.style.display = 'none';
+      window.VM_READY = 1;
+    });
   }
 
   function shoot() {
@@ -392,8 +404,10 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
   }
 
   function begin() {
-    grab.width = vid.videoWidth || 720;
-    grab.height = vid.videoHeight || 1280;
+    var vw = vid.videoWidth || 720, vh = vid.videoHeight || 1280;
+    var k = Math.min(1, MAXEDGE / Math.max(vw, vh));
+    grab.width = Math.round(vw * k);
+    grab.height = Math.round(vh * k);
     gctx = grab.getContext('2d');
 
     if ('requestVideoFrameCallback' in vid) {
@@ -437,6 +451,7 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
   vid.addEventListener('loadedmetadata', begin);
   vid.addEventListener('error', function () {
     loader.textContent = '';
+    window.VM_READY = 1;
   });
 
   window.addEventListener('scroll', schedule, { passive: true });
@@ -502,11 +517,22 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
     chrome(false);
   }
 
+  // Hold the start until every journey frame is decoded. Two more seconds of
+  // loading beats a run that stutters.
+  function whenReady(go) {
+    var t0 = performance.now();
+    (function poll() {
+      if (window.VM_READY || performance.now() - t0 > 60000) { timer = null; go(); return; }
+      timer = setTimeout(poll, 100);
+    })();
+  }
+
   function run() {
     if (running) return;
     running = true;
     chrome(true);
     window.scrollTo(0, 0);
+    whenReady(function () {
     timer = setTimeout(function () {
       timer = null;
       var from = window.pageYOffset || document.documentElement.scrollTop || 0;
@@ -523,6 +549,7 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
         raf = requestAnimationFrame(step);
       })();
     }, LEAD);
+    });
   }
 
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
