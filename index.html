@@ -385,12 +385,16 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
     grab.width = vid.videoWidth || 720;
     grab.height = vid.videoHeight || 1280;
     gctx = grab.getContext('2d');
-    var every = Math.max(1, Math.round((vid.duration * 30) / CAP)), n = 0;
 
     if ('requestVideoFrameCallback' in vid) {
-      var step = function () {
+      // Take a frame each time playback passes the next of CAP evenly spaced
+      // marks across the clip. Keyed on media time rather than on counting
+      // every Nth callback, so it does not depend on the clip's frame rate
+      // and a dropped callback costs nothing - the next one still qualifies.
+      var step = function (now, meta) {
         if (done) return;
-        if (n++ % every === 0) shoot();
+        var t = meta && meta.mediaTime != null ? meta.mediaTime : vid.currentTime;
+        if (t >= (imgs.length * vid.duration) / CAP) shoot();
         if (!done) vid.requestVideoFrameCallback(step);
       };
       vid.requestVideoFrameCallback(step);
