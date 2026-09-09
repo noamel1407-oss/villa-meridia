@@ -355,11 +355,12 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
   document.body.appendChild(vid);
 
   var CAP = 108, grab = document.createElement('canvas'), gctx = null, done = false;
-  // Longest edge each frame is stored at. The canvas already upscales the
-  // 1280x720 source, and holding the whole set well under the browser's
-  // image budget is what keeps all 108 decoded for the length of the tour
-  // instead of being evicted and decoded again mid-scroll.
-  var MAXEDGE = 768;
+  // Longest edge each frame is stored at, for the visitor's scroll-driven
+  // journey only - a capture run presents the clip itself and never touches
+  // this set. 960 rather than the file's full 1280: at 1280 the set is 380MB
+  // and half of six continuous-scroll runs hit a decode stall of up to 98ms,
+  // where 960 is 214MB and stalled in none of five.
+  var MAXEDGE = 960;
 
   function addFrame() {
     var im = new Image();
