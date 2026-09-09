@@ -233,23 +233,23 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
   </div>
 </section>
 
-<section class="enquire" id="enquire">
+<section class="enquire" id="enquire" dir="rtl" lang="he">
   <div class="inner">
     <div>
       <span class="eyebrow">ENQUIRE</span>
-      <h2>Arrange a private viewing</h2>
-      <p class="lead">The house is shown by appointment only. Leave your
-         details and we will be in touch the same day.</p>
-      <div class="hours">Monday to Friday, 9:00–18:00<br>villa@meridia.example</div>
+      <h2>לתיאום סיור פרטי</h2>
+      <p class="lead">הבית נפתח לביקורים בתיאום מראש בלבד. השאירו פרטים
+         ונחזור אליכם עוד היום.</p>
+      <div class="hours">ימים א׳–ה׳, 9:00–18:00<br>villa@meridia.example</div>
     </div>
     <div class="form">
-      <div class="field"><label for="n">Full name</label>
+      <div class="field"><label for="n">שם מלא</label>
         <input id="n" type="text" autocomplete="name"></div>
-      <div class="field"><label for="p">Phone</label>
+      <div class="field"><label for="p">טלפון</label>
         <input id="p" type="tel" autocomplete="tel"></div>
-      <div class="field"><label for="m">When would you like to visit?</label>
+      <div class="field"><label for="m">מתי תרצו להגיע?</label>
         <textarea id="m" rows="3"></textarea></div>
-      <button class="send" type="button">Request a viewing</button>
+      <button class="send" type="button">אשמח לתאם סיור</button>
     </div>
   </div>
 </section>
@@ -275,6 +275,7 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
   var caps = [].slice.call(document.querySelectorAll('.cap'));
   var imgs = [];
   var ready = 0, current = -1, target = 0, shown = 0, raf = null;
+  var lastBase = -1, AHEAD = 8;
 
   function pad(n) { return ('00' + n).slice(-3); }
 
@@ -290,6 +291,16 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
     var i = Math.floor(f), t = f - i;
     var im = imgs[i], nx = imgs[Math.min(i + 1, imgs.length - 1)];
     if (!im || !im.complete || !im.naturalWidth) return;
+    // A frame that is loaded but not decoded blocks the main thread inside
+    // drawImage while it decodes. Keep a short window ahead of the playhead
+    // decoded so the frame about to be drawn never has to be.
+    if (i !== lastBase) {
+      lastBase = i;
+      for (var k = i; k < Math.min(imgs.length, i + AHEAD); k++) {
+        var pre = imgs[k];
+        if (pre && pre.complete && pre.decode) pre.decode().catch(function () {});
+      }
+    }
     if (Math.abs(f - current) < 0.01) return;
     current = f;
     var cw = canvas.width, ch = canvas.height;
@@ -297,8 +308,7 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
     var s = Math.max(cw / iw, ch / ih);
     var w = iw * s, h = ih * s;
     var x = (cw - w) / 2, y = (ch - h) / 2;
-    ctx.fillStyle = '#F2EDE4';
-    ctx.fillRect(0, 0, cw, ch);
+    // the cover fit always spans the canvas, so no clearing pass is needed
     ctx.globalAlpha = 1;
     ctx.drawImage(im, x, y, w, h);
     if (t > 0.02 && nx && nx.complete && nx.naturalWidth) {
@@ -452,7 +462,7 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
   if (!isFinite(dur)) dur = 12000;
   dur = Math.max(4000, Math.min(60000, dur));
 
-  var raf = null, timer = null, running = false, css = null;
+  var raf = null, timer = null, running = false, css = null, gaps = null;
 
   // the pointer and the scrollbar are part of the screen, so take them
   // out of frame for the duration of the run and put them back after.
@@ -475,16 +485,8 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
     return Math.max(0, Math.max(d.scrollHeight, document.body.scrollHeight) - window.innerHeight);
   }
 
-  // end of the path: one content section past the journey, measured live
-  function endOfPath() {
-    var j = document.getElementById('journey');
-    if (!j) return maxScroll();
-    var el = j.nextElementSibling;
-    while (el && !el.getBoundingClientRect().height) el = el.nextElementSibling;
-    if (!el) el = j;
-    var top = window.pageYOffset || document.documentElement.scrollTop || 0;
-    return Math.max(0, Math.min(el.getBoundingClientRect().bottom + top - window.innerHeight, maxScroll()));
-  }
+  // end of the path: the foot of the document, where the enquiry section sits
+  function endOfPath() { return maxScroll(); }
 
   // one curve for the whole path. speed is 1 - (2t-1)^4 : zero at both ends,
   // within 6% of its peak across the middle half. no segments, no stops.
@@ -509,10 +511,14 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
       timer = null;
       var from = window.pageYOffset || document.documentElement.scrollTop || 0;
       var to = endOfPath();
-      var t0 = performance.now();
+      var t0 = performance.now(), last = 0;
+      gaps = [];
       (function step() {
-        var t = (performance.now() - t0) / dur;
-        if (t >= 1) { window.scrollTo(0, to); raf = null; running = false; chrome(false); return; }
+        var now = performance.now();
+        if (last) gaps.push(now - last);
+        last = now;
+        var t = (now - t0) / dur;
+        if (t >= 1) { window.scrollTo(0, to); raf = null; running = false; chrome(false); report(); return; }
         window.scrollTo(0, Math.round(from + (to - from) * ease(t)));
         raf = requestAnimationFrame(step);
       })();
@@ -526,6 +532,37 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
     if (e.key === 'r' || e.key === 'R') run();
   });
   window.addEventListener('touchstart', stop, { passive: true });
+  // stats=1: after the motion has stopped, how many frames the page dropped
+  // during the run and the longest gap between frames. Never during a run.
+  function report() {
+    if (q.get('stats') !== '1' || !gaps || !gaps.length) return;
+    var sorted = gaps.slice().sort(function (a, b) { return a - b; });
+    var frame = sorted[sorted.length >> 1] || 16.7;
+    var dropped = 0, longest = 0;
+    for (var i = 0; i < gaps.length; i++) {
+      if (gaps[i] > longest) longest = gaps[i];
+      var missed = Math.round(gaps[i] / frame) - 1;
+      if (missed > 0) dropped += missed;
+    }
+    var box = document.createElement('div');
+    box.className = 'vm-info';
+    box.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;' +
+      'align-items:center;justify-content:center;gap:12vmin;pointer-events:none;' +
+      'background:rgba(20,18,14,.88);color:#F7F3EC;text-align:center;' +
+      'font:700 16vmin/1 ui-monospace,Menlo,Consolas,monospace';
+    [[dropped, 'FRAMES DROPPED'], [Math.round(longest), 'LONGEST GAP ms']].forEach(function (pair) {
+      var cell = document.createElement('div');
+      var big = document.createElement('div');
+      big.textContent = pair[0];
+      var tag = document.createElement('div');
+      tag.textContent = pair[1];
+      tag.style.cssText = 'font:400 2.2vmin/1.6 ui-monospace,monospace;letter-spacing:.2em;opacity:.65;margin-top:2vmin';
+      cell.appendChild(big); cell.appendChild(tag);
+      box.appendChild(cell);
+    });
+    document.body.appendChild(box);
+  }
+
   if (q.get('info') === '1') {
     var info = document.createElement('div');
     info.className = 'vm-info';
