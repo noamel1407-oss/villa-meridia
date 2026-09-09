@@ -319,7 +319,7 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
     raf = null;
     var p = progress();
     target = Math.round(p * (COUNT - 1));
-    shown += (target - shown) * 0.4;
+    shown += (target - shown) * 0.28;
     if (Math.abs(target - shown) < 0.02) shown = target;
     draw(Math.max(0, Math.min(COUNT - 1, shown)));
     caps.forEach(function (c) {
