@@ -104,10 +104,13 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
   :root{--pad:52px}
   .bar{padding:20px var(--pad)}
   .bar nav a.desk{display:inline}
-  .cap{left:auto;right:0;width:50vw;padding:0 var(--pad) 0 4vw;
+  .cap{left:auto;right:0;width:46vw;padding:0 var(--pad) 0 5vw;
     bottom:auto;top:50%;transform:translateY(-42%);
     color:var(--ink);text-shadow:none;text-align:right}
   .cap.on{transform:translateY(-50%)}
+  .cap h2{font-size:clamp(38px,3.6vw,62px)}
+  .cap p{font-size:16px;margin-top:18px;padding-top:18px;
+    border-top:1px solid var(--line);display:inline-block}
   .cap p{color:var(--quiet)}
   #loader{color:var(--quiet)}
   .row{padding:118px var(--pad);display:grid;
@@ -146,7 +149,7 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
     <canvas id="film"></canvas>
     <div id="loader">LOADING</div>
 
-    <div class="cap" data-in="0.02" data-out="0.20">
+    <div class="cap" data-in="0" data-out="0.20">
       <h2><span>הבית האחרון</span><span>לפני הים</span></h2>
       <p>בית פרטי על הצוק, מעל המפרץ</p>
     </div>
@@ -292,7 +295,7 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
     var wide = window.innerWidth >= 900;
     var s = wide ? ch / ih : Math.max(cw / iw, ch / ih);
     var w = iw * s, h = ih * s;
-    var x = wide ? Math.max(cw * 0.04, (cw * 0.5 - w) / 2) : (cw - w) / 2;
+    var x = wide ? Math.max(cw * 0.05, (cw * 0.52 - w) / 2) : (cw - w) / 2;
     var y = (ch - h) / 2;
     ctx.fillStyle = '#F2EDE4';
     ctx.fillRect(0, 0, cw, ch);
@@ -406,6 +409,7 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
   window.addEventListener('scroll', schedule, { passive: true });
   window.addEventListener('resize', size);
   size();
+  schedule();
 })();
 </script>
 </body>
