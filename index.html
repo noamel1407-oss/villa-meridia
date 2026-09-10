@@ -347,7 +347,7 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
 
   // --- build the frame set once, by playing journey.mp4 through off-screen ---
   var vid = document.createElement('video');
-  if (!SHOOT) vid.src = window.innerWidth >= 900 ? 'journey-wide.mp4' : 'journey.mp4';
+  if (!SHOOT) vid.src = window.innerWidth >= 900 ? 'journey-wide.mp4' : 'journey3.mp4';
   vid.muted = true; vid.defaultMuted = true; vid.playsInline = true;
   vid.setAttribute('playsinline', ''); vid.setAttribute('webkit-playsinline', '');
   vid.preload = 'auto'; vid.crossOrigin = 'anonymous';
@@ -502,7 +502,7 @@ h1,h2,h3{font-family:'Frank Ruhl Libre',serif;font-weight:300;
       filmD = film.duration || 0; window.VM_READY = 1;
     }, { once: true });
     film.addEventListener('error', function () { window.VM_READY = 1; });
-    film.src = window.innerWidth >= 900 ? 'journey-wide.mp4' : 'journey.mp4';
+    film.src = window.innerWidth >= 900 ? 'journey-wide.mp4' : 'journey3.mp4';
     stage.appendChild(film);
   })();
 
